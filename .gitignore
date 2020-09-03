@@ -1,0 +1,14 @@
+*.js
+!jest.config.js
+*.d.ts
+node_modules
+.env
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+# Parcel build directories
+.cache
+.build
+lambda/rds-helper/__pycache__/cfnresponse.cpython-38.pyc
