@@ -1,7 +1,3 @@
-enum Regions {
-  EU_CENTRAL_1 = "ca-central-1"
-}
-
 type ProjectConfig = {
   naming: {
     company: string,
@@ -9,11 +5,15 @@ type ProjectConfig = {
     project: string
   },
   deployment: {
-    region: Regions
+    region: string
   },
   tags: {
     app: string
     dept: string
+  },
+  database: {
+    admin: string
+    dbname: string
   }
 }
 
@@ -24,11 +24,15 @@ const config: ProjectConfig = {
     "project":  "project"
   },
   "deployment": {
-    "region": Regions.EU_CENTRAL_1
+    "region": "ca-central-1"
   },
   "tags": {
     "app": "sample-app",
     "dept": "dept"
+  },
+  "database": {
+    "admin": "sampleadmin",
+    "dbname": "sampledb"
   }
 }
 

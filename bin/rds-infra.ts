@@ -6,10 +6,13 @@ import {default as config } from '../config/config'
 
 // Setup prefix
 let prefix = `${config.naming.company}-${config.naming.dept}-${config.naming.project}`
-const ssmRoot = `/${config.naming.company}/${config.naming.dept}/${config.naming.project}`
+let ssmRoot = `/${config.naming.company}/${config.naming.dept}/${config.naming.project}`
 
 const app = new cdk.App();
-new RdsInfraStack(app, 'RdsInfraStack', {
+new RdsInfraStack(app, 'sample-rds-infra-stack', {
   prefix: prefix, 
-  ssmRoot: ssmRoot,  
+  ssmRoot: ssmRoot,
+  dbadmin: config.database.admin,
+  dbname: config.database.dbname,
+  region: config.deployment.region
 });

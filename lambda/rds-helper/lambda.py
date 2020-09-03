@@ -7,13 +7,11 @@ import traceback
 import json
 
 
-def get_secret():
-  secret_name = "/company/dept/project/rds/sample/sample-db"
-  region_name = "ca-central-1"
+def get_secret(secret_name, region_name):
   session = boto3.session.Session()
   client = session.client(
-  service_name='secretsmanager',
-  region_name=region_name
+    service_name = 'secretsmanager',
+    region_name = region_name
   )
 
   try:
@@ -91,7 +89,9 @@ def get_cfn_response_data(message):
 def lambda_handler(event, context):
   try:
 
-    secret = json.loads(get_secret())
+    print(event['ResourceProperties']['secret_name'])
+    secret = json.loads(get_secret(event['ResourceProperties']['secret_name'], event['ResourceProperties']['region']))
+    print(secret)
     db_host = secret["host"]
     db_name = secret["dbname"]
     db_port = secret["port"]
@@ -100,7 +100,6 @@ def lambda_handler(event, context):
     
     if event['RequestType'] == 'Create':
       try:
-        # TODO: Run schema deployment here
         # get a connection, if a connect cannot be made an exception will be raised here
         conn = create_conn(db_name, db_user, db_host, db_pass)
         result = fetch(conn)

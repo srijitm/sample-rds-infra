@@ -12,7 +12,10 @@ import {taskPolicyActions } from '../utils/iam';
 
 interface RdsInfraStackProps extends cdk.StackProps {
   prefix: string,
-  ssmRoot: string
+  ssmRoot: string,
+  dbadmin: string,
+  dbname: string,
+  region: string
 }
 
 export class RdsInfraStack extends cdk.Stack {
@@ -25,62 +28,32 @@ export class RdsInfraStack extends cdk.Stack {
       privateSubnetIds: [
           'subnet-0d23d5a56a722ffd2',
           'subnet-0eff0de647a8335bd'
-      ],
-      vpcCidrBlock: '172.30.0.0/16'
+      ]
     });
-
-    // Provision secret
-    // const instanceSecret = new secrets.Secret(this, 'InstanceSecret', {
-    //   secretName: `${props.ssmRoot}/rds/sample/sample-db`,
-    //   description: "RDS credentials"
-    // })
 
     // Provision RDS Instance
     const instance = new rds.DatabaseInstance(this, 'Instance', {
-      databaseName: 'sampledb',
-      instanceIdentifier: `${props.prefix}-sampledb`,
+      databaseName: `${props.dbname}`,
+      instanceIdentifier: `${props.prefix}-${props.dbname}`,
       engine: rds.DatabaseInstanceEngine.POSTGRES,
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE2, ec2.InstanceSize.MEDIUM),
       allocatedStorage: 20,
       storageEncrypted: true,
       backupRetention: cdk.Duration.days(7),
-      masterUsername: 'sampleadmin',
+      masterUsername: `${props.dbadmin}`,
       deletionProtection: false,
       iamAuthentication: true,
       autoMinorVersionUpgrade: true,
-    //  masterUserPassword: instanceSecret.secretValue,
       vpc
     })
 
     const dbSecret = instance.node.tryFindChild('Secret') as rds.DatabaseSecret;
     const cfnSecret = dbSecret.node.defaultChild as secrets.CfnSecret;
     cfnSecret.addPropertyOverride('GenerateSecretString.ExcludeCharacters', '"@/\\;');
-    cfnSecret.name = `${props.ssmRoot}/rds/sample/sample-db`
+    cfnSecret.name = `${props.ssmRoot}/rds/${props.dbname}`
     
-
-    new ssm.StringParameter(this, 'RDSdBHostName', {
-      description: `Sample DB Host Name`,
-      parameterName: `${props.ssmRoot}/rds/sample/dbhostname`,
-      stringValue: instance.dbInstanceEndpointAddress.toString()
-    })
-
-    new ssm.StringParameter(this, 'RDSdBName', {
-      description: `Sample DB Name`,
-      parameterName: `${props.ssmRoot}/rds/sample/dbname`,
-      stringValue: 'sampledb'
-    })
-
-    new ssm.StringParameter(this, 'RDSdBUser', {
-      description: `Sample DB Host User`,
-      parameterName: `${props.ssmRoot}/rds/sample/dbuser`,
-      stringValue: 'sampleadmin'
-    })
-    
-    new ssm.StringParameter(this, 'RDSDBPort', {
-      description: `Sample DB Host Port`,
-      parameterName: `${props.ssmRoot}/rds/sample/dbport`,
-      stringValue: instance.dbInstanceEndpointPort.toString()
-    })
+    // Rotate the master user password every 30 days
+    instance.addRotationSingleUser()
 
     instance.connections.allowInternally(ec2.Port.allTcp(), 'All traffic within security group')
 
@@ -109,19 +82,19 @@ export class RdsInfraStack extends cdk.Stack {
     secretSSMPolicy.addActions(...taskPolicyActions)
     rdsHelper.addToRolePolicy(secretSSMPolicy)
 
-    // TODO: Test to make sure this is triggered after instance provisioned
-    const provider = new cr.Provider(this, 'provider', {
-      onEventHandler: rdsHelper
+        const provider = new cr.Provider(this, 'provider', {
+      onEventHandler: rdsHelper,
     });
 
-    new cdk.CustomResource(this, 'customResource', { 
+    const customResource = new cdk.CustomResource(this, 'customResource', { 
       serviceToken: provider.serviceToken,
       properties: {
-        "db_host": instance.instanceEndpoint,
-        "db_name": 'sampledb',
-        "db_user": 'sampleadmin',
-        "db_port:": instance.dbInstanceEndpointPort.toString()
+        "secret_name": `${props.ssmRoot}/rds/${props.dbname}`,
+        "region": `${props.region}`
       }
      });
+
+     // To make sure the custom resource is triggered after instance provisioned
+     customResource.node.addDependency(instance);
   }
 }
