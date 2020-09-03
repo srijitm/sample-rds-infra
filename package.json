@@ -2,7 +2,7 @@
   "name": "rds-infra",
   "version": "0.1.0",
   "bin": {
-    "tsystems-rds-infra": "bin/rds-infra.js"
+    "sample-rds-infra": "bin/rds-infra.js"
   },
   "scripts": {
     "build": "tsc",
