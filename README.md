@@ -1,4 +1,5 @@
 # Sample-RDS-Infra
+**Note: This is not Production grade and simply meant as a demo**
 
 ## Description
 
